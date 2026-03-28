@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Insurance Adjuster — System Walkthrough</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #080c12;
+      --surface:     #0d1320;
+      --surface2:    #111827;
+      --border:      #1a2235;
+      --border2:     #243050;
+      --blue:        #2a6cc8;
+      --blue-glow:   #4a9ef0;
+      --blue-dim:    #1a3a6b;
+      --blue-deep:   #0c1e3a;
+      --red-alert:   #c43030;
+      --green-ok:    #2a8a50;
+      --amber-warn:  #c8882a;
+      --text:        #8899bb;
+      --text-dim:    #3a4a65;
+      --text-bright: #c8d8f0;
+      --font:        'Syne', sans-serif;
+      --mono:        'JetBrains Mono', monospace;
+    }
+
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 2px;
+      background: var(--blue-glow);
+      transition: width 0.5s ease;
+      z-index: 999;
+      box-shadow: 0 0 12px var(--blue);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 460px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── LEFT: DIAGRAM ── */
+    .diagram-panel {
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+      border-right: 1px solid var(--border);
+    }
+
+    .diagram-inner {
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .diagram-panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.018;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 256px 256px;
+      z-index: 10;
+    }
+
+    svg.diag {
+      width: 100%; max-width: 680px;
+      height: auto;
+      overflow: visible;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.7));
+    }
+
+    .node-hl { transition: opacity 0.4s, filter 0.4s; }
+    .node-hl.faded { opacity: 0.08; filter: grayscale(1); }
+    .node-hl.lit   { opacity: 1; filter: none; }
+
+    @keyframes nodePulse {
+      0%, 100% { opacity: 0.5; r: 30; }
+      50%       { opacity: 0.15; r: 44; }
+    }
+    .pulse-ring { animation: nodePulse 2.2s ease-in-out infinite; }
+
+    @keyframes dataFlow {
+      0% { stroke-dashoffset: 24; }
+      100% { stroke-dashoffset: 0; }
+    }
+    .data-flow { animation: dataFlow 0.8s linear infinite; }
+
+    /* ── RIGHT: SCRIPT PANEL ── */
+    .script-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      overflow: hidden;
+      border-left: 2px solid var(--blue-deep);
+    }
+
+    .script-header {
+      padding: 18px 24px 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface2) 100%);
+    }
+
+    .script-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .step-indicator {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      color: var(--blue-dim);
+    }
+
+    .step-pip-row { display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
+
+    .step-pip {
+      width: 16px; height: 3px;
+      border-radius: 2px;
+      background: var(--border2);
+      transition: all 0.3s;
+    }
+    .step-pip.done   { background: var(--blue-dim); }
+    .step-pip.active { background: var(--blue-glow); box-shadow: 0 0 8px var(--blue); }
+
+    .stage-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid;
+      margin-bottom: 8px;
+      transition: all 0.3s;
+    }
+
+    .step-title {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-bright);
+      font-family: var(--font);
+    }
+
+    .script-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 24px 100px;
+      scroll-behavior: smooth;
+    }
+    .script-body::-webkit-scrollbar { width: 4px; }
+    .script-body::-webkit-scrollbar-track { background: transparent; }
+    .script-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    #script-body { animation: fadeUp 0.35s ease; }
+
+    .say-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--blue-dim);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .say-box {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--blue);
+      border-radius: 6px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+    }
+    .say-box p {
+      font-size: 13px;
+      font-family: var(--mono);
+      font-weight: 300;
+      color: var(--text);
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+    .say-box p:last-child { margin-bottom: 0; }
+    .say-box strong { color: var(--text-bright); font-weight: 500; }
+    .say-box code {
+      background: var(--bg);
+      color: var(--blue-glow);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .say-box em { color: var(--blue-glow); font-style: italic; }
+
+    .stage {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      font-size: 12px;
+      font-family: var(--mono);
+      font-weight: 300;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+    .stage strong { color: var(--text); font-weight: 500; }
+
+    .facts {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .fact {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .fact-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 3px;
+    }
+    .fact strong { color: var(--text); }
+
+    .stat-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 14px 0;
+    }
+    .stat-box {
+      flex: 1;
+      min-width: 90px;
+      background: var(--bg);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: var(--font);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--blue-glow);
+      display: block;
+    }
+    .stat-lbl {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .c-blue   { color: var(--blue-glow); }
+    .c-green  { color: var(--green-ok); }
+    .c-red    { color: var(--red-alert); }
+    .c-amber  { color: var(--amber-warn); }
+
+    /* nav controls */
+    .script-footer {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(0deg, var(--surface) 60%, transparent);
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 20;
+    }
+
+    .nav-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .nav-btn:hover:not(:disabled) { background: var(--blue-deep); border-color: var(--blue-dim); color: var(--blue-glow); }
+    .nav-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .step-count-small {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .step-count-small span { color: var(--blue-glow); }
+  </style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+
+<div class="layout">
+
+  <!-- ── LEFT: PIPELINE DIAGRAM ── -->
+  <div class="diagram-panel">
+    <div class="diagram-inner">
+      <svg class="diag" viewBox="0 0 700 560" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#1a3a6b"/>
+          </marker>
+          <marker id="arr-lit" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#4a9ef0"/>
+          </marker>
+          <filter id="glow-blue">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+          <filter id="glow-green">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+
+        <!-- grid lines -->
+        <line x1="0" y1="280" x2="700" y2="280" stroke="#1a2235" stroke-width="1" stroke-dasharray="4,8"/>
+        <line x1="350" y1="0" x2="350" y2="560" stroke="#1a2235" stroke-width="1" stroke-dasharray="4,8"/>
+
+        <!-- ── CONNECTIONS (behind nodes) ── -->
+        <!-- intake → image proc -->
+        <line x1="350" y1="78" x2="350" y2="118" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-1"/>
+        <!-- image proc → damage detect -->
+        <line x1="350" y1="168" x2="350" y2="208" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-2"/>
+        <!-- damage detect → cost est -->
+        <line x1="280" y1="248" x2="200" y2="288" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-3"/>
+        <!-- damage detect → fraud -->
+        <line x1="420" y1="248" x2="500" y2="288" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-4"/>
+        <!-- cost est → report -->
+        <line x1="180" y1="338" x2="300" y2="398" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-5"/>
+        <!-- fraud → report -->
+        <line x1="520" y1="338" x2="400" y2="398" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-6"/>
+        <!-- report → adjuster -->
+        <line x1="350" y1="448" x2="350" y2="488" stroke="#1a3a6b" stroke-width="1.5" marker-end="url(#arr)" id="conn-7"/>
+
+        <!-- ── NODES ── -->
+
+        <!-- INTAKE -->
+        <g class="node-hl" id="hl-intake">
+          <circle cx="350" cy="58" r="36" fill="#0d1320" stroke="#1a3a6b" stroke-width="1.5"/>
+          <rect x="325" y="38" width="50" height="40" rx="4" fill="#0c1e3a" stroke="#2a6cc8" stroke-width="1.5"/>
+          <!-- camera icon -->
+          <circle cx="350" cy="59" r="8" fill="none" stroke="#4a9ef0" stroke-width="1.5"/>
+          <rect x="340" y="44" width="20" height="14" rx="2" fill="#1a3060" stroke="#2a6cc8" stroke-width="1"/>
+          <circle cx="350" cy="59" r="4" fill="#4a9ef0"/>
+          <text x="350" y="96" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.1em">CLAIM INTAKE</text>
+        </g>
+
+        <!-- IMAGE PROCESSING -->
+        <g class="node-hl" id="hl-imgproc">
+          <circle cx="350" cy="143" r="28" fill="#0d1320" stroke="#1a3a6b" stroke-width="1"/>
+          <rect x="326" y="129" width="48" height="28" rx="4" fill="#0c1e3a" stroke="#2a6cc8" stroke-width="1.5"/>
+          <!-- waveform bars -->
+          <rect x="330" y="136" width="4" height="14" rx="1" fill="#2a6cc8"/>
+          <rect x="337" y="132" width="4" height="18" rx="1" fill="#4a9ef0"/>
+          <rect x="344" y="134" width="4" height="16" rx="1" fill="#2a6cc8"/>
+          <rect x="351" y="130" width="4" height="20" rx="1" fill="#4a9ef0"/>
+          <rect x="358" y="134" width="4" height="16" rx="1" fill="#2a6cc8"/>
+          <rect x="365" y="133" width="4" height="17" rx="1" fill="#2a6cc8"/>
+          <text x="350" y="183" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.1em">IMAGE PROC</text>
+        </g>
+
+        <!-- DAMAGE DETECTION (center, main AI) -->
+        <g class="node-hl" id="hl-damage">
+          <circle cx="350" cy="228" r="32" fill="#0c1e3a" stroke="#2a6cc8" stroke-width="2"/>
+          <!-- hexagon AI chip look -->
+          <polygon points="350,208 364,216 364,240 350,248 336,240 336,216" fill="#0d1a30" stroke="#4a9ef0" stroke-width="1.5"/>
+          <text x="350" y="231" text-anchor="middle" font-family="'Syne',sans-serif" font-size="9" fill="#4a9ef0" font-weight="700">AI</text>
+          <text x="350" y="241" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="7" fill="#2a6cc8">YOLOv8</text>
+          <text x="350" y="272" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.08em">DAMAGE DETECT</text>
+        </g>
+
+        <!-- COST ESTIMATION -->
+        <g class="node-hl" id="hl-cost">
+          <circle cx="180" cy="313" r="30" fill="#0d1320" stroke="#1a3a6b" stroke-width="1.5"/>
+          <!-- dollar/cost bars -->
+          <rect x="163" y="302" width="6" height="22" rx="1" fill="#1a3a6b"/>
+          <rect x="172" y="296" width="6" height="28" rx="1" fill="#2a6cc8"/>
+          <rect x="181" y="300" width="6" height="24" rx="1" fill="#1a3a6b"/>
+          <rect x="190" y="293" width="6" height="31" rx="1" fill="#4a9ef0"/>
+          <text x="180" y="355" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.08em">COST MODEL</text>
+        </g>
+
+        <!-- FRAUD ENGINE -->
+        <g class="node-hl" id="hl-fraud">
+          <circle cx="520" cy="313" r="30" fill="#0d1320" stroke="#1a3a6b" stroke-width="1.5"/>
+          <!-- warning shield -->
+          <polygon points="520,292 536,300 536,318 520,330 504,318 504,300" fill="#1a1008" stroke="#c8882a" stroke-width="1.5"/>
+          <text x="520" y="316" text-anchor="middle" font-family="'Syne',sans-serif" font-size="9" fill="#c8882a" font-weight="700">!</text>
+          <text x="520" y="355" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.08em">FRAUD ENGINE</text>
+        </g>
+
+        <!-- CLAIM REPORT -->
+        <g class="node-hl" id="hl-report">
+          <circle cx="350" cy="423" r="32" fill="#0d1320" stroke="#1a3a6b" stroke-width="1.5"/>
+          <!-- document lines -->
+          <rect x="332" y="408" width="36" height="30" rx="3" fill="#0c1e3a" stroke="#2a6cc8" stroke-width="1.5"/>
+          <line x1="338" y1="416" x2="362" y2="416" stroke="#4a9ef0" stroke-width="1.5"/>
+          <line x1="338" y1="422" x2="358" y2="422" stroke="#1a3a6b" stroke-width="1"/>
+          <line x1="338" y1="428" x2="360" y2="428" stroke="#1a3a6b" stroke-width="1"/>
+          <line x1="338" y1="434" x2="354" y2="434" stroke="#1a3a6b" stroke-width="1"/>
+          <text x="350" y="468" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.08em">CLAIM REPORT</text>
+        </g>
+
+        <!-- ADJUSTER / HUMAN REVIEW -->
+        <g class="node-hl" id="hl-adjuster">
+          <circle cx="350" cy="510" r="24" fill="#0d1320" stroke="#1a3a6b" stroke-width="1.5"/>
+          <!-- person icon -->
+          <circle cx="350" cy="503" r="7" fill="none" stroke="#2a8a50" stroke-width="1.5"/>
+          <path d="M335,520 Q350,512 365,520" fill="none" stroke="#2a8a50" stroke-width="1.5"/>
+          <text x="350" y="546" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="#3a4a65" letter-spacing="0.08em">ADJUSTER</text>
+        </g>
+
+        <!-- pulse ring (animated, repositioned by JS) -->
+        <circle id="pulse-ring" class="pulse-ring" cx="-999" cy="-999" r="40" fill="none" stroke="#4a9ef0" stroke-width="2" opacity="0"/>
+
+      </svg>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: SCRIPT ── -->
+  <div class="script-panel" style="position:relative;">
+
+    <div class="script-header">
+      <div class="script-header-top">
+        <span class="step-indicator" id="step-indicator">STEP 1 OF 10</span>
+        <span class="step-count-small"><span id="step-count">1</span> / 10</span>
+      </div>
+      <div class="step-pip-row" id="pip-row"></div>
+      <div style="margin-top:10px;">
+        <div class="stage-tag" id="stage-tag">◈ Overview</div>
+        <div class="step-title" id="step-title">AI Insurance Adjuster</div>
+      </div>
+    </div>
+
+    <div class="script-body" id="script-body"></div>
+
+    <div class="script-footer">
+      <button class="nav-btn" id="btn-prev" disabled>← Prev</button>
+      <span class="step-count-small">use arrow keys or buttons</span>
+      <button class="nav-btn" id="btn-next">Next →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const STEPS = [
+
+    // ── 1: Overview ──────────────────────────────────────────────────────────
+    {
+      title: "System Overview",
+      tag: "◈ Overview",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0c1e3a;color:#4a9ef0;border-color:#1a3a6b;",
+      highlight: ["hl-intake","hl-imgproc","hl-damage","hl-cost","hl-fraud","hl-report","hl-adjuster"],
+      pulse: null,
+      content: `
+        <div class="say-label">SYSTEM OVERVIEW</div>
+        <div class="say-box">
+          <p><strong>AI Insurance Adjuster</strong> transforms a car accident from <em>photo submission</em> to <em>claim decision</em> in under 10 seconds — no human estimator required.</p>
+          <p>The pipeline has <strong>five AI stages</strong>: Claim Intake → Image Processing → Damage Detection → parallel Cost + Fraud Analysis → Claim Report → Adjuster Review.</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-val">~6s</span><span class="stat-lbl">avg. processing</span></div>
+          <div class="stat-box"><span class="stat-val">94%</span><span class="stat-lbl">accuracy rate</span></div>
+          <div class="stat-box"><span class="stat-val">40%</span><span class="stat-lbl">fraud detection lift</span></div>
+          <div class="stat-box"><span class="stat-val">70%</span><span class="stat-lbl">adj. time saved</span></div>
+        </div>
+        <div class="stage">
+          <p><strong>The core insight:</strong> Computer vision (YOLOv8) detects damage regions; cost and fraud models run in parallel on the same detection output — so the bottleneck is the detection pass, not the analysis.</p>
+        </div>
+      `
+    },
+
+    // ── 2: Claim Intake ───────────────────────────────────────────────────────
+    {
+      title: "1. Claim Intake",
+      tag: "◈ Upload",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0c1e3a;color:#4a9ef0;border-color:#1a3a6b;",
+      highlight: ["hl-intake"],
+      pulse: { cx: 350, cy: 58 },
+      content: `
+        <div class="say-label">STAGE 1 — INTAKE</div>
+        <div class="say-box">
+          <p><strong>What the claimant submits:</strong></p>
+          <p>· Accident photos (1–12 images, up to 20 MB each)<br>
+          · Incident description (free text or voice)<br>
+          · Policy number for coverage lookup<br>
+          · Vehicle VIN → auto-decoded make/model/year</p>
+          <p><strong>Validation at intake:</strong> EXIF timestamps checked for consistency · GPS metadata cross-referenced with reported location · image quality score gates blurry uploads before they hit the AI pipeline.</p>
+        </div>
+        <div class="stage">
+          <p><strong>Tech:</strong> React upload UI with drag-and-drop · Node.js presigned S3 URLs · EXIF parsing via <code>exifr</code> · VIN decoder API (NHTSA free tier) · JWT-authenticated sessions.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><div class="fact-dot" style="background:#4a9ef0"></div><div><strong>Supported formats:</strong> JPEG, HEIC (iPhone), PNG, WebP — auto-converted to JPEG for the AI pass</div></div>
+          <div class="fact"><div class="fact-dot" style="background:#2a8a50"></div><div><strong>Mobile-first:</strong> native camera capture on iOS/Android; no app required — PWA with Service Worker offline queue</div></div>
+        </div>
+      `
+    },
+
+    // ── 3: Image Processing ───────────────────────────────────────────────────
+    {
+      title: "2. Image Processing",
+      tag: "◈ Enhancement",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0c1e3a;color:#4a9ef0;border-color:#1a3a6b;",
+      highlight: ["hl-imgproc"],
+      pulse: { cx: 350, cy: 143 },
+      content: `
+        <div class="say-label">STAGE 2 — IMAGE PROCESSING</div>
+        <div class="say-box">
+          <p><strong>Why pre-processing matters:</strong> Raw phone photos have wildly different lighting, angles, and compression artifacts. The damage detection model was trained on normalized inputs — pushing raw photos directly hurts mAP by ~12 percentage points.</p>
+          <p><strong>Pipeline steps:</strong><br>
+          1. <em>Auto-orient</em> from EXIF rotation flags<br>
+          2. <em>Exposure normalization</em> — CLAHE on L-channel<br>
+          3. <em>Vehicle segmentation</em> — isolate car body, mask out background<br>
+          4. <em>Region tiling</em> — 640×640 tiles with 20% overlap for large images<br>
+          5. <em>Quality score</em> — Laplacian variance gates blur; re-request if &lt;threshold</p>
+        </div>
+        <div class="stage">
+          <p><strong>Tech:</strong> OpenCV (Python · CLAHE · morphological ops) · FastAPI microservice on GPU node · <code>Pillow</code> for HEIC conversion · tiles reassembled post-detection using NMS across tile boundaries.</p>
+        </div>
+      `
+    },
+
+    // ── 4: Damage Detection ───────────────────────────────────────────────────
+    {
+      title: "3. Damage Detection",
+      tag: "◈ AI Detection",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0c1e3a;color:#4a9ef0;border-color:#2a6cc8;",
+      highlight: ["hl-damage"],
+      pulse: { cx: 350, cy: 228 },
+      content: `
+        <div class="say-label">STAGE 3 — DAMAGE DETECTION</div>
+        <div class="say-box">
+          <p><strong>Model:</strong> YOLOv8-L fine-tuned on 180,000 annotated vehicle damage images across 14 damage classes: <em>dent · scratch · crack · shatter · deformation · paint transfer · missing part · rust · flood mark · fire damage · hail · undercarriage · structural · totaled</em>.</p>
+          <p><strong>Output per bounding box:</strong> class label · confidence score · severity (minor / moderate / severe) · area fraction of panel · affected body panel (hood, door L/R, quarter panel, fender, bumper, roof, trunk).</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-val">mAP</span><span class="stat-lbl">0.87 @ IoU 0.5</span></div>
+          <div class="stat-box"><span class="stat-val">14</span><span class="stat-lbl">damage classes</span></div>
+          <div class="stat-box"><span class="stat-val">640²</span><span class="stat-lbl">input resolution</span></div>
+        </div>
+        <div class="stage">
+          <p><strong>Inference:</strong> ~800 ms on A10G GPU · boxes + masks exported as JSON · annotated image rendered with color-coded severity overlays for adjuster UI · results stored in PostgreSQL with vector embedding for similarity search.</p>
+        </div>
+      `
+    },
+
+    // ── 5: Cost Estimation ────────────────────────────────────────────────────
+    {
+      title: "4. Cost Estimation",
+      tag: "◈ Cost Model",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0a1a0a;color:#2a8a50;border-color:#1a3a1a;",
+      highlight: ["hl-cost"],
+      pulse: { cx: 180, cy: 313 },
+      content: `
+        <div class="say-label">STAGE 4A — COST ESTIMATION</div>
+        <div class="say-box">
+          <p><strong>Inputs:</strong> damage class + severity + panel + area fraction from detection · vehicle year/make/model/trim from VIN · regional labor rate index · OEM vs aftermarket parts preference from policy · current parts pricing from partner repair network API.</p>
+          <p><strong>Model:</strong> Gradient Boosted Regression (XGBoost) trained on 2.4M historical claims with realized repair costs. Outputs a <strong>repair cost range</strong> (P10–P90) per damage cluster, then aggregates across all detected regions with correlation adjustments (adjacent panels often repaired together).</p>
+        </div>
+        <div class="stage">
+          <p><strong>Calibration:</strong> model re-trained quarterly as parts prices shift. Prediction intervals back-tested to have true coverage ≥ stated confidence level — actuarially validated, not just ML-accurate.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><div class="fact-dot" style="background:#2a8a50"></div><div><strong>Total loss threshold:</strong> if P50 estimate exceeds 75% of ACV, flag as potential total loss and escalate to senior adjuster</div></div>
+          <div class="fact"><div class="fact-dot" style="background:#4a9ef0"></div><div><strong>Repair network routing:</strong> nearest 5 in-network shops preselected by specialty (body, glass, structural) and current queue time</div></div>
+        </div>
+      `
+    },
+
+    // ── 6: Fraud Engine ───────────────────────────────────────────────────────
+    {
+      title: "5. Fraud Detection",
+      tag: "◈ Fraud Engine",
+      tagClass: "stage-tag",
+      tagStyle: "background:#1a0808;color:#c43030;border-color:#4a1010;",
+      highlight: ["hl-fraud"],
+      pulse: { cx: 520, cy: 313 },
+      content: `
+        <div class="say-label">STAGE 4B — FRAUD DETECTION</div>
+        <div class="say-box">
+          <p><strong>Multi-signal fraud scoring:</strong></p>
+          <p>· <em>Image forensics:</em> ELA (Error Level Analysis) for JPEG manipulation · metadata inconsistency · reverse-image search for stock photos<br>
+          · <em>Damage physics:</em> impact geometry plausibility — dents inconsistent with reported collision direction flagged<br>
+          · <em>Policy timing:</em> claims filed &lt;30 days after policy inception weighted<br>
+          · <em>Claimant history:</em> prior claims frequency, address clustering, IP geolocation vs. reported location</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-val c-red">2.4%</span><span class="stat-lbl">baseline fraud rate</span></div>
+          <div class="stat-box"><span class="stat-val c-green">40%</span><span class="stat-lbl">detection lift</span></div>
+          <div class="stat-box"><span class="stat-val">91%</span><span class="stat-lbl">precision @0.7 cut</span></div>
+        </div>
+        <div class="stage">
+          <p><strong>Output:</strong> risk score 0–100 · top-3 contributing signals · recommended action (auto-approve / standard review / SIU referral). Score stored for future model retraining; human investigator decisions feed back as labels.</p>
+        </div>
+      `
+    },
+
+    // ── 7: Claim Report ───────────────────────────────────────────────────────
+    {
+      title: "6. Claim Report",
+      tag: "◈ Report",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0c1e3a;color:#4a9ef0;border-color:#1a3a6b;",
+      highlight: ["hl-report"],
+      pulse: { cx: 350, cy: 423 },
+      content: `
+        <div class="say-label">STAGE 5 — CLAIM REPORT</div>
+        <div class="say-box">
+          <p><strong>Structured claim package generated:</strong></p>
+          <p>· Annotated photos with colored bounding boxes and severity labels<br>
+          · Itemized damage list with per-item cost ranges<br>
+          · Total estimate (P10 / P50 / P90)<br>
+          · Fraud risk score and signal summary<br>
+          · Coverage check against policy limits and deductible<br>
+          · Recommended repair shops (with appointment booking link)<br>
+          · Draft settlement letter (editable by adjuster)</p>
+        </div>
+        <div class="stage">
+          <p><strong>Outputs:</strong> JSON for downstream systems · PDF rendered via Puppeteer for print · customer-facing summary pushed via SMS/email · data written to claims management system via REST API.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><div class="fact-dot" style="background:#4a9ef0"></div><div><strong>Claimant view:</strong> simplified web app shows damage map, estimated timeline, and shop options — no jargon</div></div>
+          <div class="fact"><div class="fact-dot" style="background:#2a8a50"></div><div><strong>Adjuster view:</strong> side-by-side photo + annotation + cost breakdown + one-click approve/escalate</div></div>
+        </div>
+      `
+    },
+
+    // ── 8: Adjuster Assist ────────────────────────────────────────────────────
+    {
+      title: "7. Adjuster Assist",
+      tag: "◈ Human Loop",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0a1a0a;color:#2a8a50;border-color:#1a3a1a;",
+      highlight: ["hl-adjuster"],
+      pulse: { cx: 350, cy: 510 },
+      content: `
+        <div class="say-label">STAGE 6 — ADJUSTER ASSIST</div>
+        <div class="say-box">
+          <p><strong>Human-in-the-loop design:</strong> the AI makes recommendations, the adjuster makes decisions. The system is designed to augment — not replace — human judgment.</p>
+          <p><strong>Adjuster dashboard:</strong><br>
+          · Queue ranked by fraud risk (high-risk claims surfaced first)<br>
+          · One-click approve for low-risk, clear-cut claims<br>
+          · Override any AI estimate with documented reason (feeds retraining)<br>
+          · Chat interface to ask the AI "why did you flag this?" — explains in plain English<br>
+          · Time-to-decision tracked; SLA alerts if claim stalls</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-val">63%</span><span class="stat-lbl">auto-approved</span></div>
+          <div class="stat-box"><span class="stat-val">31%</span><span class="stat-lbl">adj. review</span></div>
+          <div class="stat-box"><span class="stat-val">6%</span><span class="stat-lbl">SIU escalation</span></div>
+        </div>
+        <div class="stage">
+          <p><strong>Compliance:</strong> all AI decisions logged with model version + feature snapshot for regulatory auditability. GDPR right-to-explanation fulfilled by the plain-English reasoning output.</p>
+        </div>
+      `
+    },
+
+    // ── 9: Architecture ───────────────────────────────────────────────────────
+    {
+      title: "8. Architecture",
+      tag: "◈ Tech Stack",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0c1e3a;color:#4a9ef0;border-color:#1a3a6b;",
+      highlight: ["hl-intake","hl-imgproc","hl-damage","hl-cost","hl-fraud","hl-report","hl-adjuster"],
+      pulse: null,
+      content: `
+        <div class="say-label">ARCHITECTURE</div>
+        <div class="say-box">
+          <p><strong>Frontend:</strong> React + Next.js · Tailwind CSS · Framer Motion · WebSocket for real-time status updates</p>
+          <p><strong>Backend:</strong> Node.js API gateway · FastAPI ML services · JWT auth · Redis for job queues · PostgreSQL for claims + pgvector for embedding search</p>
+          <p><strong>AI / ML:</strong> YOLOv8-L (PyTorch) · XGBoost cost model · ELA fraud model · OpenCV preprocessing · MLflow experiment tracking</p>
+          <p><strong>Infrastructure:</strong> Docker + Kubernetes · GPU node pool (A10G) · S3 object storage · Terraform IaC · GitHub Actions CI/CD</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><div class="fact-dot" style="background:#4a9ef0"></div><div><strong>Integration APIs:</strong> Repair network partners · NHTSA VIN · Carfax vehicle history · State DMV (select states) · Policy management system</div></div>
+          <div class="fact"><div class="fact-dot" style="background:#2a8a50"></div><div><strong>Mobile:</strong> PWA with camera capture + offline queue · React Native app (roadmap)</div></div>
+          <div class="fact"><div class="fact-dot" style="background:#c8882a"></div><div><strong>Data residency:</strong> PII isolated to encrypted PostgreSQL · S3 server-side encryption · SOC 2 Type II target</div></div>
+        </div>
+      `
+    },
+
+    // ── 10: Performance & Roadmap ─────────────────────────────────────────────
+    {
+      title: "9. Performance & Roadmap",
+      tag: "✓ Complete",
+      tagClass: "stage-tag",
+      tagStyle: "background:#0a1a0a;color:#2a8a50;border-color:#1a3a1a;",
+      highlight: ["hl-intake","hl-imgproc","hl-damage","hl-cost","hl-fraud","hl-report","hl-adjuster"],
+      pulse: { cx: 350, cy: 228 },
+      content: `
+        <div class="say-label">PERFORMANCE + ROADMAP</div>
+        <div class="say-box">
+          <p><strong>Current performance:</strong> avg. claim processed end-to-end in <em>5.8 seconds</em> from last photo upload. Throughput: 400 concurrent claims per GPU node. P99 latency: 14 seconds.</p>
+          <p><strong>Accuracy benchmarks:</strong> Damage detection mAP 0.87 · Cost estimate within ±15% of realized cost in 82% of closed claims · Fraud precision 91% at 0.7 threshold (recall 67%).</p>
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><span class="stat-val">5.8s</span><span class="stat-lbl">avg. end-to-end</span></div>
+          <div class="stat-box"><span class="stat-val">400</span><span class="stat-lbl">concurrent / node</span></div>
+          <div class="stat-box"><span class="stat-val">±15%</span><span class="stat-lbl">cost accuracy</span></div>
+        </div>
+        <div class="stage">
+          <p><strong>Roadmap:</strong> Real-time video capture (walk-around assessment) · LiDAR depth from iPhone Pro for 3D damage mapping · coverage verification at intake · repair tracking webhook (shop updates claim status) · subrogation AI (fault attribution from scene photos).</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><div class="fact-dot" style="background:#4a9ef0"></div><div><strong>v2.0 target:</strong> multi-vehicle accident scene understanding — separate damage per vehicle automatically</div></div>
+          <div class="fact"><div class="fact-dot" style="background:#2a8a50"></div><div><strong>Open ecosystem:</strong> adjuster API for third-party claims platforms (Majesco, Guidewire) — claims processed without switching systems</div></div>
+        </div>
+      `
+    },
+
+  ];
+
+  const TOTAL = STEPS.length;
+  let current = 0;
+
+  function render() {
+    const s = STEPS[current];
+
+    document.getElementById('progress-bar').style.width = `${((current + 1) / TOTAL) * 100}%`;
+    document.getElementById('step-indicator').textContent = `STEP ${current + 1} OF ${TOTAL}`;
+    document.getElementById('step-count').textContent = `${current + 1}`;
+    document.getElementById('step-title').textContent = s.title;
+
+    const tag = document.getElementById('stage-tag');
+    tag.textContent = s.tag;
+    tag.style.cssText = s.tagStyle;
+
+    const pipRow = document.getElementById('pip-row');
+    pipRow.innerHTML = '';
+    for (let i = 0; i < TOTAL; i++) {
+      const pip = document.createElement('div');
+      pip.className = 'step-pip' + (i < current ? ' done' : i === current ? ' active' : '');
+      pipRow.appendChild(pip);
+    }
+
+    const body = document.getElementById('script-body');
+    body.style.animation = 'none';
+    body.offsetHeight;
+    body.style.animation = '';
+    body.innerHTML = s.content;
+    body.scrollTop = 0;
+
+    document.getElementById('btn-prev').disabled = current === 0;
+    document.getElementById('btn-next').textContent = current === TOTAL - 1 ? '✓ Done' : 'Next →';
+
+    applyHighlights(s.highlight);
+    applyPulse(s.pulse);
+  }
+
+  function applyHighlights(ids) {
+    document.querySelectorAll('.node-hl').forEach(n => {
+      n.classList.remove('faded', 'lit');
+      if (!ids || !ids.length) return;
+      n.classList.add(ids.includes(n.id) ? 'lit' : 'faded');
+    });
+  }
+
+  function applyPulse(cfg) {
+    const ring = document.getElementById('pulse-ring');
+    if (!cfg) {
+      ring.setAttribute('cx', -999); ring.setAttribute('cy', -999); ring.setAttribute('opacity', 0);
+      return;
+    }
+    ring.setAttribute('cx', cfg.cx);
+    ring.setAttribute('cy', cfg.cy);
+    ring.setAttribute('opacity', 0.6);
+    ring.setAttribute('stroke', current < 4 ? '#4a9ef0' : current < 7 ? '#2a8a50' : '#4a9ef0');
+  }
+
+  function next() { if (current < TOTAL - 1) { current++; render(); } }
+  function prev() { if (current > 0)          { current--; render(); } }
+
+  document.getElementById('btn-next').addEventListener('click', next);
+  document.getElementById('btn-prev').addEventListener('click', prev);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                     { e.preventDefault(); prev(); }
+  });
+
+  render();
+</script>
+</body>
+</html>

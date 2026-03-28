@@ -1,0 +1,5 @@
+{
+  "name": "AI Insurance Adjuster",
+  "description": "An end-to-end AI pipeline that transforms accident photos into structured claim reports with damage detection, cost estimation, and fraud scoring.",
+  "requestFramePermissions": []
+}

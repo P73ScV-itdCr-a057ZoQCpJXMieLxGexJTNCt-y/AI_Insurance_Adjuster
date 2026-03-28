@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Insurance Adjuster — Claims Reinvented</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --paper:       #f5f2eb;
+  --paper-dark:  #ede9e0;
+  --ink:         #1a1612;
+  --ink-mid:     #4a4035;
+  --ink-light:   #8a7d6a;
+  --rule:        #d5cfc2;
+  --accent:      #1a3a6b;
+  --accent-mid:  #2a5090;
+  --accent-light:#c8d8f0;
+  --accent-pale: #e8f0fa;
+  --danger:      #8b1a1a;
+  --danger-pale: #f5e8e8;
+  --success:     #1a5a2a;
+  --success-pale:#e8f5ea;
+  --warn:        #6b4a0a;
+  --warn-pale:   #faf0e0;
+}
+
+html, body { width: 100%; height: 100%; overflow: hidden; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+
+/* ── SLIDE SYSTEM ── */
+.slide {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+}
+.slide.active { display: flex; }
+
+/* ── SLIDE 1: COVER ── */
+.cover {
+  flex-direction: column;
+  background: var(--accent);
+  color: white;
+  padding: 80px 100px;
+  justify-content: space-between;
+}
+
+.cover-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  opacity: 0.8;
+}
+
+.cover-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.cover-main h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3.5rem, 7vw, 6rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.cover-main h1 em {
+  font-style: italic;
+  color: var(--accent-light);
+}
+
+.cover-subtitle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1rem;
+  font-weight: 300;
+  color: var(--accent-light);
+  margin-top: 24px;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+.cover-stats {
+  display: flex;
+  gap: 60px;
+}
+
+.cstat-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.cstat-lbl {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  color: var(--accent-light);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.cover-rule {
+  width: 60px;
+  height: 3px;
+  background: var(--accent-light);
+  margin: 40px 0;
+  opacity: 0.5;
+}
+
+/* ── STANDARD CONTENT SLIDES ── */
+.content-slide {
+  flex-direction: column;
+  background: var(--paper);
+  padding: 0;
+}
+
+.slide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 60px 20px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+
+.slide-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--ink-light);
+}
+
+.slide-chapter {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--accent-mid);
+  text-transform: uppercase;
+}
+
+.slide-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* two-column layouts */
+.col-left {
+  flex: 1;
+  padding: 40px 40px 40px 60px;
+  border-right: 1px solid var(--rule);
+  overflow-y: auto;
+}
+.col-right {
+  width: 42%;
+  padding: 40px 60px 40px 40px;
+  overflow-y: auto;
+  background: var(--paper-dark);
+}
+
+/* full-width content */
+.col-full {
+  flex: 1;
+  padding: 40px 60px;
+  overflow-y: auto;
+}
+
+h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 20px;
+}
+h2 em { font-style: italic; color: var(--accent-mid); }
+
+h3 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent-mid);
+  margin-bottom: 12px;
+  margin-top: 28px;
+}
+h3:first-child { margin-top: 0; }
+
+p {
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--ink-mid);
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+p:last-child { margin-bottom: 0; }
+
+p strong { color: var(--ink); font-weight: 500; }
+
+.rule-line {
+  width: 32px; height: 2px;
+  background: var(--accent);
+  margin-bottom: 24px;
+}
+
+/* PILL TAGS */
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  margin-right: 6px;
+  margin-bottom: 6px;
+}
+.pill-blue { background: var(--accent-pale); color: var(--accent); border: 1px solid var(--accent-light); }
+.pill-red  { background: var(--danger-pale); color: var(--danger); border: 1px solid #e0b0b0; }
+.pill-green{ background: var(--success-pale);color: var(--success);border: 1px solid #a0c8a8; }
+.pill-warn { background: var(--warn-pale);   color: var(--warn);   border: 1px solid #d4b880; }
+
+/* STAT BLOCKS */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.stat-cell {
+  background: var(--paper-dark);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 14px 16px;
+  border-radius: 2px;
+}
+.stat-cell.danger { border-left-color: var(--danger); }
+.stat-cell.success { border-left-color: var(--success); }
+.stat-cell.warn { border-left-color: var(--warn); }
+.stat-val {
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+.stat-lbl {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--ink-light);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* PROCESS STEPS */
+.process-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 20px 0;
+}
+.proc-step {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: flex-start;
+}
+.proc-step:last-child { border-bottom: none; }
+.proc-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--rule);
+  min-width: 28px;
+  line-height: 1.2;
+}
+.proc-content {}
+.proc-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.proc-detail {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--ink-mid);
+  line-height: 1.5;
+}
+
+/* CODE QUOTE */
+.code-quote {
+  background: var(--ink);
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin: 20px 0;
+}
+.code-quote code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 300;
+  color: var(--accent-light);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  display: block;
+}
+
+/* COMPARISON TABLE */
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin: 16px 0;
+}
+.compare-table th {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-light);
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--rule);
+  text-align: left;
+}
+.compare-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-mid);
+  line-height: 1.4;
+  vertical-align: top;
+}
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+.compare-table td.good { color: var(--success); }
+.compare-table td.bad  { color: var(--danger); }
+
+/* LARGE QUOTE PULL */
+.pull-quote {
+  border-left: 4px solid var(--accent);
+  padding: 16px 20px;
+  margin: 20px 0;
+  background: var(--accent-pale);
+  border-radius: 0 4px 4px 0;
+}
+.pull-quote p {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--accent);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* PIPELINE VISUAL (SVG inline in slide) */
+.pipeline-vis {
+  margin: 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+.pipe-node {
+  background: white;
+  border: 1.5px solid var(--rule);
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  text-transform: uppercase;
+  white-space: nowrap;
+  position: relative;
+}
+.pipe-node.active-node {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.pipe-arrow {
+  color: var(--rule);
+  font-size: 16px;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+/* BENEFIT CARDS */
+.benefit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin: 20px 0;
+}
+.benefit-card {
+  padding: 18px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: white;
+}
+.benefit-icon {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.benefit-icon.blue { background: var(--accent-pale); }
+.benefit-icon.green { background: var(--success-pale); }
+.benefit-icon.red { background: var(--danger-pale); }
+.benefit-icon.warn { background: var(--warn-pale); }
+.benefit-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.benefit-desc {
+  font-size: 12px;
+  font-weight: 300;
+  color: var(--ink-mid);
+  line-height: 1.5;
+}
+
+/* NAV */
+.nav-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 44px;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 100;
+}
+.nav-bar button {
+  background: none;
+  border: none;
+  color: var(--ink-light);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 2px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-bar button:hover:not(:disabled) { color: white; background: rgba(255,255,255,0.08); }
+.nav-bar button:disabled { opacity: 0.3; cursor: default; }
+.nav-progress {
+  flex: 1;
+  max-width: 400px;
+  margin: 0 24px;
+}
+.nav-track {
+  height: 2px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.nav-fill {
+  height: 100%;
+  background: var(--accent-light);
+  transition: width 0.4s ease;
+}
+.nav-counter {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-light);
+  min-width: 60px;
+  text-align: center;
+}
+.nav-counter span { color: var(--accent-light); }
+</style>
+</head>
+<body>
+
+<!-- ── SLIDE 1: COVER ── -->
+<div class="slide cover active" id="s0">
+  <div class="cover-eyebrow">AI Insurance Adjuster &nbsp;·&nbsp; Technical Presentation</div>
+  <div class="cover-main">
+    <h1>From <em>Photo</em><br>to Claim<br>Decision.</h1>
+    <div class="cover-rule"></div>
+    <p class="cover-subtitle">An end-to-end AI pipeline that transforms accident photos into structured claim reports — with damage detection, cost estimation, and fraud scoring — in under 10 seconds.</p>
+  </div>
+  <div class="cover-stats">
+    <div>
+      <div class="cstat-val">~6s</div>
+      <div class="cstat-lbl">Processing time</div>
+    </div>
+    <div>
+      <div class="cstat-val">94%</div>
+      <div class="cstat-lbl">Detection accuracy</div>
+    </div>
+    <div>
+      <div class="cstat-val">70%</div>
+      <div class="cstat-lbl">Adj. time saved</div>
+    </div>
+    <div>
+      <div class="cstat-val">40%</div>
+      <div class="cstat-lbl">Fraud detection lift</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 2: THE PROBLEM ── -->
+<div class="slide content-slide" id="s1">
+  <div class="slide-header">
+    <span class="slide-num">02 / 12</span>
+    <span class="slide-chapter">The Problem</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>Claims are <em>slow,</em> inconsistent, and costly.</h2>
+      <div class="rule-line"></div>
+      <p>The traditional auto-claim process takes <strong>7–14 days</strong> from submission to settlement. An adjuster physically inspects the vehicle, manually photographs damage, looks up repair costs, and writes estimates — all by hand.</p>
+      <p>Result: claimant dissatisfaction, high operating costs, and systematic fraud that human reviewers miss 60% of the time.</p>
+      <div class="pull-quote"><p>"The average auto claim costs $4,300 to process — half of that is labor, not repair costs."</p></div>
+    </div>
+    <div class="col-right">
+      <h3>By the numbers</h3>
+      <div class="stat-grid">
+        <div class="stat-cell danger">
+          <div class="stat-val">7–14</div>
+          <div class="stat-lbl">Days avg. to settle</div>
+        </div>
+        <div class="stat-cell danger">
+          <div class="stat-val">$4,300</div>
+          <div class="stat-lbl">Avg. claim proc. cost</div>
+        </div>
+        <div class="stat-cell warn">
+          <div class="stat-val">$34B</div>
+          <div class="stat-lbl">Annual fraud losses (US)</div>
+        </div>
+        <div class="stat-cell warn">
+          <div class="stat-val">40%</div>
+          <div class="stat-lbl">Est. missed by human rev.</div>
+        </div>
+      </div>
+      <h3>Pain points</h3>
+      <p><strong>Inconsistency:</strong> two adjusters estimate the same damage within ±30% of each other on average. <strong>Fraud:</strong> staged accidents and inflated estimates cost insurers billions. <strong>Speed:</strong> claimants abandon insurers after slow settlements.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 3: HOW IT WORKS ── -->
+<div class="slide content-slide" id="s2">
+  <div class="slide-header">
+    <span class="slide-num">03 / 12</span>
+    <span class="slide-chapter">The Pipeline</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-full">
+      <h2>Five stages. <em>One decision.</em></h2>
+      <div class="rule-line"></div>
+      <div class="pipeline-vis">
+        <div class="pipe-node">📷 Intake</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">🔍 Image Proc</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node active-node">⬡ Damage AI</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">💰 Cost Model</div>
+        <div class="pipe-arrow">+</div>
+        <div class="pipe-node">🚨 Fraud Engine</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">📄 Report</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-node">👤 Adjuster</div>
+      </div>
+      <div class="process-steps">
+        <div class="proc-step">
+          <div class="proc-num">1</div>
+          <div class="proc-content">
+            <div class="proc-title">Claim Intake</div>
+            <div class="proc-detail">Claimant submits photos via web/mobile. VIN decoded automatically. EXIF timestamps and GPS metadata validated. Image quality scored — blurry images re-requested before reaching the AI.</div>
+          </div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">2</div>
+          <div class="proc-content">
+            <div class="proc-title">Image Processing</div>
+            <div class="proc-detail">OpenCV pipeline: auto-orient → CLAHE exposure normalization → vehicle segmentation → 640×640 tiled inputs. Improves YOLOv8 mAP by ~12 points vs. raw photos.</div>
+          </div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">3</div>
+          <div class="proc-content">
+            <div class="proc-title">Damage Detection</div>
+            <div class="proc-detail">YOLOv8-L fine-tuned on 180,000 annotated images. 14 damage classes. Per-box: class + severity + panel + confidence. mAP 0.87 @ IoU 0.5. ~800ms on A10G GPU.</div>
+          </div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">4</div>
+          <div class="proc-content">
+            <div class="proc-title">Cost + Fraud (parallel)</div>
+            <div class="proc-detail">XGBoost cost regression on 2.4M historical claims → P10–P90 repair range. ELA image forensics + physics plausibility + policy signals → 0–100 fraud risk score. Both run in parallel on detection output.</div>
+          </div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">5</div>
+          <div class="proc-content">
+            <div class="proc-title">Report + Adjuster Review</div>
+            <div class="proc-detail">Annotated photos + itemized costs + fraud summary + coverage check → JSON, PDF, and claimant web view. 63% auto-approved; 31% adjuster review; 6% SIU escalation.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 4: DAMAGE DETECTION ── -->
+<div class="slide content-slide" id="s3">
+  <div class="slide-header">
+    <span class="slide-num">04 / 12</span>
+    <span class="slide-chapter">Damage Detection</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>Computer vision <em>trained</em> on 180K claims.</h2>
+      <div class="rule-line"></div>
+      <p>YOLOv8-L fine-tuned on a proprietary dataset of annotated vehicle damage images. The model outputs bounding boxes, class labels, severity grades, and affected body panels — all in a single inference pass.</p>
+      <h3>14 damage classes</h3>
+      <div style="line-height:2;">
+        <span class="pill pill-blue">Dent</span>
+        <span class="pill pill-blue">Scratch</span>
+        <span class="pill pill-blue">Crack</span>
+        <span class="pill pill-blue">Shatter</span>
+        <span class="pill pill-blue">Deformation</span>
+        <span class="pill pill-blue">Paint transfer</span>
+        <span class="pill pill-blue">Missing part</span>
+        <span class="pill pill-blue">Rust</span>
+        <span class="pill pill-blue">Flood mark</span>
+        <span class="pill pill-blue">Fire damage</span>
+        <span class="pill pill-blue">Hail</span>
+        <span class="pill pill-blue">Undercarriage</span>
+        <span class="pill pill-blue">Structural</span>
+        <span class="pill pill-warn">Totaled</span>
+      </div>
+      <h3>Pre-processing matters</h3>
+      <p>Raw phone photos pushed directly to the model score <strong>mAP 0.75</strong>. After CLAHE normalization + tiling: <strong>mAP 0.87</strong> — a 12-point improvement purely from better inputs.</p>
+    </div>
+    <div class="col-right">
+      <h3>Per bounding box output</h3>
+      <div class="code-quote"><code>{
+  "class": "dent",
+  "severity": "moderate",
+  "confidence": 0.91,
+  "panel": "front_left_door",
+  "area_fraction": 0.14,
+  "bbox": [x, y, w, h]
+}</code></div>
+      <h3>Inference performance</h3>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-val">0.87</div>
+          <div class="stat-lbl">mAP @ IoU 0.5</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">800ms</div>
+          <div class="stat-lbl">A10G GPU latency</div>
+        </div>
+        <div class="stat-cell success">
+          <div class="stat-val">14</div>
+          <div class="stat-lbl">Damage classes</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">640²</div>
+          <div class="stat-lbl">Input resolution</div>
+        </div>
+      </div>
+      <h3>Total loss detection</h3>
+      <p>If the P50 cost estimate exceeds <strong>75% of ACV</strong>, the claim is flagged for total-loss evaluation before entering standard repair routing.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 5: COST ESTIMATION ── -->
+<div class="slide content-slide" id="s4">
+  <div class="slide-header">
+    <span class="slide-num">05 / 12</span>
+    <span class="slide-chapter">Cost Estimation</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>Actuarially-validated <em>cost ranges.</em></h2>
+      <div class="rule-line"></div>
+      <p>Not just ML-accurate — back-tested to have true coverage ≥ stated confidence. The XGBoost model outputs a <strong>P10–P90 repair range</strong> per damage cluster, then aggregates with correlation adjustments for adjacent panels.</p>
+      <h3>Model inputs</h3>
+      <div class="process-steps">
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Damage class + severity + panel</div><div class="proc-detail">From YOLOv8 detection output</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Vehicle year/make/model/trim</div><div class="proc-detail">Decoded from VIN at intake</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Regional labor rate index</div><div class="proc-detail">ZIP-code level, updated monthly</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Parts pricing from partner network</div><div class="proc-detail">OEM vs. aftermarket from policy</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <h3>Training data</h3>
+      <div class="stat-grid">
+        <div class="stat-cell success">
+          <div class="stat-val">2.4M</div>
+          <div class="stat-lbl">Historical claims</div>
+        </div>
+        <div class="stat-cell success">
+          <div class="stat-val">82%</div>
+          <div class="stat-lbl">Within ±15% of realized</div>
+        </div>
+      </div>
+      <h3>Sample output</h3>
+      <div class="code-quote"><code>{
+  "estimate": {
+    "p10": 1840,
+    "p50": 2620,
+    "p90": 3810
+  },
+  "currency": "USD",
+  "adjacent_discount": 0.12,
+  "total_loss_flag": false,
+  "shops": [
+    { "name": "...", "eta_days": 3 }
+  ]
+}</code></div>
+      <h3>Quarterly recalibration</h3>
+      <p>Model retrained each quarter as OEM and aftermarket parts prices shift. Prediction intervals validated against realized costs from closed claims — not just held-out training splits.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 6: FRAUD DETECTION ── -->
+<div class="slide content-slide" id="s5">
+  <div class="slide-header">
+    <span class="slide-num">06 / 12</span>
+    <span class="slide-chapter">Fraud Detection</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>Multi-signal <em>fraud scoring.</em></h2>
+      <div class="rule-line"></div>
+      <p>Fraud is not one thing. The engine combines four independent signal categories, each with different data sources. The final 0–100 risk score is a calibrated ensemble — not a simple threshold rule.</p>
+      <h3>Signal categories</h3>
+      <compare-section>
+        <table class="compare-table">
+          <thead><tr><th>Category</th><th>Method</th><th>Signal</th></tr></thead>
+          <tbody>
+            <tr><td>Image forensics</td><td>ELA (Error Level Analysis)</td><td>JPEG manipulation artifacts</td></tr>
+            <tr><td>Image forensics</td><td>Reverse image search</td><td>Stock photo reuse</td></tr>
+            <tr><td>Damage physics</td><td>Impact geometry model</td><td>Dent placement vs. reported angle</td></tr>
+            <tr><td>Policy timing</td><td>Claim date vs. inception</td><td>&lt;30 days → elevated weight</td></tr>
+            <tr><td>Claimant history</td><td>Network graph</td><td>Address clusters, prior freq.</td></tr>
+            <tr><td>Geolocation</td><td>IP + GPS delta</td><td>Reported vs. actual location</td></tr>
+          </tbody>
+        </table>
+      </compare-section>
+    </div>
+    <div class="col-right">
+      <h3>Performance</h3>
+      <div class="stat-grid">
+        <div class="stat-cell danger">
+          <div class="stat-val">2.4%</div>
+          <div class="stat-lbl">Baseline fraud rate</div>
+        </div>
+        <div class="stat-cell success">
+          <div class="stat-val">+40%</div>
+          <div class="stat-lbl">Detection lift vs. human</div>
+        </div>
+        <div class="stat-cell success">
+          <div class="stat-val">91%</div>
+          <div class="stat-lbl">Precision @ 0.7 cut</div>
+        </div>
+        <div class="stat-cell warn">
+          <div class="stat-val">67%</div>
+          <div class="stat-lbl">Recall @ 0.7 cut</div>
+        </div>
+      </div>
+      <h3>Disposition routing</h3>
+      <div class="process-steps">
+        <div class="proc-step">
+          <div class="proc-num" style="color:#1a5a2a;">●</div>
+          <div class="proc-content"><div class="proc-title">Score 0–39 → Auto-approve</div><div class="proc-detail">63% of all claims. Settled within hours.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num" style="color:#6b4a0a;">●</div>
+          <div class="proc-content"><div class="proc-title">Score 40–69 → Adjuster review</div><div class="proc-detail">31% of claims. Human confirms within 1 business day.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num" style="color:#8b1a1a;">●</div>
+          <div class="proc-content"><div class="proc-title">Score 70–100 → SIU referral</div><div class="proc-detail">6% of claims. Special Investigations Unit.</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 7: CLAIM REPORT ── -->
+<div class="slide content-slide" id="s6">
+  <div class="slide-header">
+    <span class="slide-num">07 / 12</span>
+    <span class="slide-chapter">Claim Report</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>One package. <em>Every stakeholder.</em></h2>
+      <div class="rule-line"></div>
+      <p>The claim report is generated from a single structured data object and rendered into three different views: a claimant-facing summary, an adjuster dashboard, and a systems-integration JSON feed.</p>
+      <h3>Report contents</h3>
+      <div class="process-steps">
+        <div class="proc-step">
+          <div class="proc-num">✓</div>
+          <div class="proc-content"><div class="proc-title">Annotated photos</div><div class="proc-detail">Color-coded bounding boxes by severity. Minor = blue, moderate = orange, severe = red.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">✓</div>
+          <div class="proc-content"><div class="proc-title">Itemized cost breakdown</div><div class="proc-detail">Per damage region with P10/P50/P90 range. Total with correlation adjustment.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">✓</div>
+          <div class="proc-content"><div class="proc-title">Fraud risk summary</div><div class="proc-detail">Score + top-3 contributing signals. Plain English explanation for adjuster.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">✓</div>
+          <div class="proc-content"><div class="proc-title">Coverage check</div><div class="proc-detail">Auto-applied deductible + policy limits. Total-loss flag if triggered.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">✓</div>
+          <div class="proc-content"><div class="proc-title">Repair shop options</div><div class="proc-detail">5 nearest in-network shops by specialty + current queue time. Booking link pre-populated.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <h3>Output formats</h3>
+      <div class="stat-grid">
+        <div class="stat-cell">
+          <div class="stat-val">JSON</div>
+          <div class="stat-lbl">Claims system API feed</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">PDF</div>
+          <div class="stat-lbl">Via Puppeteer, archivable</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">Web</div>
+          <div class="stat-lbl">Claimant-facing summary</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">SMS</div>
+          <div class="stat-lbl">Status push notification</div>
+        </div>
+      </div>
+      <h3>Regulatory compliance</h3>
+      <p>All AI decisions logged with <strong>model version + feature snapshot</strong>. Plain-English reasoning output satisfies GDPR right-to-explanation. Audit trail stored for 7 years per insurance regulation.</p>
+      <div class="pull-quote" style="margin-top:16px;"><p>"63% of claims are approved and settled without a human ever touching them."</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 8: ADJUSTER ASSIST ── -->
+<div class="slide content-slide" id="s7">
+  <div class="slide-header">
+    <span class="slide-num">08 / 12</span>
+    <span class="slide-chapter">Adjuster Assist</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>AI augments. <em>Humans decide.</em></h2>
+      <div class="rule-line"></div>
+      <p>The system is designed around a human-in-the-loop philosophy. Every AI estimate is a recommendation — the adjuster holds final authority, and every override becomes a training label for the next model version.</p>
+      <h3>Adjuster dashboard features</h3>
+      <div class="process-steps">
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Risk-ranked queue</div><div class="proc-detail">High-fraud-risk claims surface first. SLA clock visible per claim.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">One-click approve</div><div class="proc-detail">For clean, low-risk claims. Settlement triggered immediately on click.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Explainable AI chat</div><div class="proc-detail">"Why did you flag this?" → plain-English answer from the fraud engine.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">→</div>
+          <div class="proc-content"><div class="proc-title">Override + label</div><div class="proc-detail">Any estimate can be overridden. Reason required → feeds retraining pipeline.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <h3>Disposition breakdown</h3>
+      <div class="stat-grid">
+        <div class="stat-cell success">
+          <div class="stat-val">63%</div>
+          <div class="stat-lbl">Auto-approved (no human)</div>
+        </div>
+        <div class="stat-cell warn">
+          <div class="stat-val">31%</div>
+          <div class="stat-lbl">Adjuster review</div>
+        </div>
+        <div class="stat-cell danger">
+          <div class="stat-val">6%</div>
+          <div class="stat-lbl">SIU escalation</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">70%</div>
+          <div class="stat-lbl">Adjuster time saved</div>
+        </div>
+      </div>
+      <h3>Before vs. after</h3>
+      <table class="compare-table">
+        <thead><tr><th>Metric</th><th>Before</th><th>After</th></tr></thead>
+        <tbody>
+          <tr><td>Time to decision</td><td class="bad">7–14 days</td><td class="good">&lt;4 hours</td></tr>
+          <tr><td>Cost consistency</td><td class="bad">±30% variance</td><td class="good">±15% variance</td></tr>
+          <tr><td>Fraud caught</td><td class="bad">~60% missed</td><td class="good">+40% detected</td></tr>
+          <tr><td>Adjuster load</td><td class="bad">100% manual</td><td class="good">37% of claims</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 9: TECH STACK ── -->
+<div class="slide content-slide" id="s8">
+  <div class="slide-header">
+    <span class="slide-num">09 / 12</span>
+    <span class="slide-chapter">Technology</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>Production-grade <em>stack.</em></h2>
+      <div class="rule-line"></div>
+      <h3>Frontend</h3>
+      <div style="margin-bottom:16px;">
+        <span class="pill pill-blue">React / Next.js</span>
+        <span class="pill pill-blue">Tailwind CSS</span>
+        <span class="pill pill-blue">Framer Motion</span>
+        <span class="pill pill-blue">WebSocket</span>
+        <span class="pill pill-blue">PWA</span>
+      </div>
+      <h3>Backend</h3>
+      <div style="margin-bottom:16px;">
+        <span class="pill pill-blue">Node.js API gateway</span>
+        <span class="pill pill-blue">FastAPI (ML services)</span>
+        <span class="pill pill-blue">JWT Auth</span>
+        <span class="pill pill-blue">Redis (job queue)</span>
+        <span class="pill pill-blue">REST + WebSocket</span>
+      </div>
+      <h3>AI / ML</h3>
+      <div style="margin-bottom:16px;">
+        <span class="pill pill-warn">YOLOv8-L (PyTorch)</span>
+        <span class="pill pill-warn">XGBoost</span>
+        <span class="pill pill-warn">OpenCV</span>
+        <span class="pill pill-warn">ELA Fraud Model</span>
+        <span class="pill pill-warn">MLflow</span>
+        <span class="pill pill-warn">pgvector</span>
+      </div>
+      <h3>Infrastructure</h3>
+      <div style="margin-bottom:16px;">
+        <span class="pill pill-green">Docker + Kubernetes</span>
+        <span class="pill pill-green">A10G GPU nodes</span>
+        <span class="pill pill-green">S3 object storage</span>
+        <span class="pill pill-green">PostgreSQL</span>
+        <span class="pill pill-green">Terraform</span>
+        <span class="pill pill-green">GitHub Actions</span>
+      </div>
+    </div>
+    <div class="col-right">
+      <h3>Integration APIs</h3>
+      <table class="compare-table">
+        <thead><tr><th>Service</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td>NHTSA</td><td>VIN decode (free tier)</td></tr>
+          <tr><td>Repair network API</td><td>Live parts pricing + shop queue</td></tr>
+          <tr><td>Carfax</td><td>Vehicle history</td></tr>
+          <tr><td>State DMV (select)</td><td>Registration verification</td></tr>
+          <tr><td>Policy mgmt system</td><td>Coverage + deductible lookup</td></tr>
+          <tr><td>Majesco / Guidewire</td><td>Enterprise claims systems</td></tr>
+        </tbody>
+      </table>
+      <h3>Security posture</h3>
+      <p>PII isolated to encrypted PostgreSQL. S3 server-side encryption. Non-root containers. SOC 2 Type II target. All AI decisions audit-logged with model version + feature snapshot. GDPR explainability via plain-English fraud reasoning.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 10: PERFORMANCE ── -->
+<div class="slide content-slide" id="s9">
+  <div class="slide-header">
+    <span class="slide-num">10 / 12</span>
+    <span class="slide-chapter">Performance</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-full">
+      <h2>Speed, accuracy, <em>and scale.</em></h2>
+      <div class="rule-line"></div>
+      <div class="benefit-grid">
+        <div class="benefit-card">
+          <div class="benefit-icon blue">⚡</div>
+          <div class="benefit-title">Throughput</div>
+          <div class="benefit-desc">400 concurrent claims per GPU node. Horizontal scaling via Kubernetes. P99 latency 14 seconds. Average 5.8 seconds end-to-end.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon blue">🎯</div>
+          <div class="benefit-title">Detection Accuracy</div>
+          <div class="benefit-desc">YOLOv8-L mAP 0.87 @ IoU 0.5. 14 damage classes. Trained on 180,000 annotated professional vehicle damage images.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon green">💰</div>
+          <div class="benefit-title">Cost Accuracy</div>
+          <div class="benefit-desc">82% of claims estimated within ±15% of realized repair cost. Back-tested on 2.4M historical closed claims. Recalibrated quarterly.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon red">🛡</div>
+          <div class="benefit-title">Fraud Precision</div>
+          <div class="benefit-desc">91% precision at 0.7 threshold. 67% recall. 40% lift over human-only review. Ensemble of 6 independent signal categories.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon warn">📊</div>
+          <div class="benefit-title">Automation Rate</div>
+          <div class="benefit-desc">63% of claims fully auto-approved — settled without human touch. 31% routed to adjuster. 6% SIU. 70% adjuster time saved overall.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-icon green">⏱</div>
+          <div class="benefit-title">Settlement Speed</div>
+          <div class="benefit-desc">Auto-approved claims settled in &lt;4 hours vs. industry average 7–14 days. Adjuster-reviewed claims closed in &lt;1 business day.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 11: ROADMAP ── -->
+<div class="slide content-slide" id="s10">
+  <div class="slide-header">
+    <span class="slide-num">11 / 12</span>
+    <span class="slide-chapter">Roadmap</span>
+  </div>
+  <div class="slide-body">
+    <div class="col-left">
+      <h2>What's <em>next.</em></h2>
+      <div class="rule-line"></div>
+      <h3>v2.0 — In development</h3>
+      <div class="process-steps">
+        <div class="proc-step">
+          <div class="proc-num">Q3</div>
+          <div class="proc-content"><div class="proc-title">Real-time video capture</div><div class="proc-detail">Walk-around video assessment on mobile. Frame-level damage detection + aggregation across frames. Replaces need for multiple photos.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">Q3</div>
+          <div class="proc-content"><div class="proc-title">3D damage mapping</div><div class="proc-detail">LiDAR depth from iPhone Pro for volumetric dent measurement. Improves cost accuracy by 8–12 points on structural damage.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">Q4</div>
+          <div class="proc-content"><div class="proc-title">Multi-vehicle scene understanding</div><div class="proc-detail">Single scene photo → per-vehicle damage separation. Enables first-party + third-party claims from one submission.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">Q4</div>
+          <div class="proc-content"><div class="proc-title">Repair tracking webhooks</div><div class="proc-detail">Shop sends status updates → claim record updated automatically → claimant notified. Closes the loop post-settlement.</div></div>
+        </div>
+        <div class="proc-step">
+          <div class="proc-num">2026</div>
+          <div class="proc-content"><div class="proc-title">Subrogation AI</div><div class="proc-detail">Fault attribution from scene photos. Skid marks, point-of-impact geometry, vehicle positions → fault percentage per party.</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-right">
+      <h3>Ecosystem integrations</h3>
+      <p><strong>Open adjuster API:</strong> third-party claims platforms (Majesco, Guidewire, Duck Creek) can call our AI engine as a service — insurers process claims without switching their existing system.</p>
+      <p><strong>Coverage verification at intake:</strong> live policy data fetched at claim submission so coverage gaps are surfaced before claimant expectations are set.</p>
+      <h3>Planned platform expansion</h3>
+      <div class="benefit-grid">
+        <div class="benefit-card">
+          <div class="benefit-title">Commercial trucks</div>
+          <div class="benefit-desc">Fleet-specific damage models. DOT inspection integration. Multi-axle structural assessment.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">Property claims</div>
+          <div class="benefit-desc">Roof damage via drone imagery. Hail density mapping. Interior water damage detection.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">Marine / watercraft</div>
+          <div class="benefit-desc">Hull damage assessment. Underwater imagery support via partnered dive inspection.</div>
+        </div>
+        <div class="benefit-card">
+          <div class="benefit-title">EV-specific models</div>
+          <div class="benefit-desc">Battery pack damage indicators from exterior photos. HV system proximity flagging.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SLIDE 12: CLOSING ── -->
+<div class="slide" id="s11" style="display:none;background:var(--ink);color:white;flex-direction:column;justify-content:space-between;padding:80px 100px;">
+  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.2em;color:#4a4035;">12 / 12 &nbsp;·&nbsp; AI Insurance Adjuster</div>
+  <div>
+    <h1 style="font-family:'Playfair Display',serif;font-size:clamp(3rem,6vw,5rem);font-weight:900;letter-spacing:-0.02em;color:white;line-height:1;margin-bottom:24px;">
+      Claims processed at the<br><em style="color:#c8d8f0;font-style:italic;">speed of AI.</em>
+    </h1>
+    <div style="width:60px;height:3px;background:#c8d8f0;opacity:0.4;margin-bottom:32px;"></div>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:1rem;font-weight:300;color:#8a8070;max-width:600px;line-height:1.7;">
+      Photo intake → AI damage detection → parallel cost + fraud analysis → structured claim report. Under 10 seconds. Consistent. Auditable. Human-supervised.
+    </p>
+  </div>
+  <div style="display:flex;gap:60px;">
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:700;color:white;">5.8s</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.15em;color:#4a4035;text-transform:uppercase;margin-top:4px;">Avg. processing</div>
+    </div>
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:700;color:white;">63%</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.15em;color:#4a4035;text-transform:uppercase;margin-top:4px;">Auto-approved</div>
+    </div>
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:700;color:white;">70%</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.15em;color:#4a4035;text-transform:uppercase;margin-top:4px;">Adj. time saved</div>
+    </div>
+    <div>
+      <div style="font-family:'Playfair Display',serif;font-size:2.8rem;font-weight:700;color:white;">+40%</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.15em;color:#4a4035;text-transform:uppercase;margin-top:4px;">Fraud detection</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── NAV BAR ── -->
+<nav class="nav-bar">
+  <button id="btn-prev" disabled>← PREV</button>
+  <div class="nav-progress">
+    <div class="nav-track"><div class="nav-fill" id="nav-fill" style="width:8.3%"></div></div>
+  </div>
+  <div class="nav-counter"><span id="slide-cur">1</span> / 12</div>
+  <button id="btn-next">NEXT →</button>
+</nav>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let idx = 0;
+
+function show(n) {
+  slides[idx].classList.remove('active');
+  slides[idx].style.display = 'none';
+  idx = Math.max(0, Math.min(n, total - 1));
+  slides[idx].style.display = 'flex';
+  slides[idx].classList.add('active');
+  document.getElementById('nav-fill').style.width = `${((idx + 1) / total) * 100}%`;
+  document.getElementById('slide-cur').textContent = idx + 1;
+  document.getElementById('btn-prev').disabled = idx === 0;
+  document.getElementById('btn-next').textContent = idx === total - 1 ? '✓ DONE' : 'NEXT →';
+}
+
+document.getElementById('btn-next').addEventListener('click', () => show(idx + 1));
+document.getElementById('btn-prev').addEventListener('click', () => show(idx - 1));
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); show(idx + 1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); show(idx - 1); }
+});
+
+// init: show first slide
+slides.forEach((s, i) => { if (i > 0) { s.classList.remove('active'); s.style.display = 'none'; } });
+slides[0].style.display = 'flex';
+</script>
+</body>
+</html>
