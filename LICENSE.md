@@ -52,4 +52,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 To request a commercial license, partnership, or evaluation agreement:
 
-**ai-insurance-adjuster@example.com**
+**ai-insurance-adjuster@komplex.health**
